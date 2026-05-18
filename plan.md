@@ -110,38 +110,38 @@ Adaptamos el reparto previo a la nueva estructura. Cada persona "posee" sus arch
 - `comparison.py` (script o notebook que lee `runs/*/scores/` y produce tabla y gráficos comparativos finales)
 - `README.md` (cómo entrenar y evaluar)
 
-### Toni — Gabor+SVM + visualización + slides
+### Toni — CNN scratch + phases + metrics + análisis de errores
+- `net/networks/cnn_scratch.py` (arquitectura ya acordada: Conv32→Conv64→Conv128 + BN + MaxPool + Dense256+Dropout0.5 + Dense `num_classes`)
+- `phases/train.py` (`train_one_ep`) y `phases/infer.py` (`infer_one_ep`) — usados también por MobileNetV2 de Yeray
+- `metrics/` (accuracy, per_class precision/recall, confusion matrix)
+- Análisis de errores (qué letras se confunden — escribir en `comparison.py` o sección aparte)
+
+### Corentin — Gabor+SVM + visualización + slides
 - `dataset/preprocessing/filters.py` (banco de Gabor: 5 freq × 8 orient = 40 filtros)
 - Lógica del modelo Gabor+SVM (lanzada desde `main.py --model gabor_svm`): PCA→200 componentes, `GridSearchCV` sobre `C ∈ {0.1, 1, 10}`, kernel RBF
 - `visual/plot.py` (curvas, matrices de confusión)
 - Esqueleto de slides en `presentation/`
-
-### Corentin — CNN scratch + phases + metrics + análisis de errores
-- `net/networks/cnn_scratch.py` (arquitectura ya acordada: Conv32→Conv64→Conv128 + BN + MaxPool + Dense256+Dropout0.5 + Dense26)
-- `phases/train.py` (`train_one_ep`) y `phases/infer.py` (`infer_one_ep`)
-- `metrics/` (accuracy, per_class precision/recall, confusion matrix)
-- Análisis de errores (qué letras se confunden — escribir en `comparison.py` o sección aparte)
 
 ---
 
 ## Dependencias entre tareas
 
 ```
-Yeray (dataset/, utility/, params.py, main.py)
+Yeray (dataset/, utility/, params.py, main.py)          [HECHO]
    │
-   ├──► Corentin (phases/, metrics/, cnn_scratch) ─┐
+   ├──► Toni (phases/, metrics/, cnn_scratch) ─────┐
    │                                                │
-   ├──► Yeray (mobilenetv2) ────────────────────────┤
+   ├──► Yeray (mobilenetv2) — depende de phases/ ──┤
    │                                                │
-   └──► Toni (gabor_svm, filters.py) ───────────────┤
+   └──► Corentin (gabor_svm, filters.py) ──────────┤
                                                     │
                                                     ▼
                                          Yeray (comparison.py)
-                                         Toni (visual/, slides)
-                                         Corentin (error analysis)
+                                         Corentin (visual/, slides)
+                                         Toni (error analysis)
 ```
 
-**Crítico:** Yeray debe terminar `dataset/` + `utility/` + `main.py` **antes** del miércoles de la semana 2 para que Corentin y Toni puedan trabajar en paralelo. Si Yeray se atasca, todo se bloquea.
+**Crítico:** Toni debe terminar `phases/train.py` + `phases/infer.py` cuanto antes — los necesita tanto su CNN como el MobileNet de Yeray. Corentin trabaja en paralelo sobre un track totalmente independiente.
 
 ---
 
@@ -150,29 +150,29 @@ Yeray (dataset/, utility/, params.py, main.py)
 ### Semana 1 — Infraestructura base
 - **Yeray (lun-mié):** crear estructura de carpetas, `requirements.txt`, `params.py`, `dataset/dataset.py`, `dataset/loaders.py`, `dataset/preprocessing/image_processing.py` y `custom_transformations.py`. Verificar que carga `subject-1..5` correctamente, devuelve tensores PyTorch normalizados.
 - **Yeray (jue-vie):** `main.py` con esqueleto de dispatch por `--model`, `utility/save_checkpoint.py` + `load_checkpoint.py` + `get_fresh_model.py`. Crear el directorio `runs/{model}_{timestamp}/`.
-- **Corentin (toda la semana):** prepararse en PyTorch (tutorial básico si no lo conoce). Empezar `metrics/accuracy.py` y `metrics/confusion_matrix.py` con datos dummy.
-- **Toni (toda la semana):** `dataset/preprocessing/filters.py` con el banco de Gabor. Probar con un par de imágenes que la extracción de features funciona (output shape correcto, no NaN).
+- **Toni (toda la semana):** prepararse en PyTorch (tutorial básico si no lo conoce). Empezar `metrics/accuracy.py` y `metrics/confusion_matrix.py` con datos dummy.
+- **Corentin (toda la semana):** `dataset/preprocessing/filters.py` con el banco de Gabor. Probar con un par de imágenes que la extracción de features funciona (output shape correcto, no NaN). Si no ha tocado sklearn/scipy antes, 30 min con Yeray para repasar `PCA + GridSearchCV + SVC`.
 
 **Hito semana 1:** `python main.py --model dummy` corre, crea `runs/`, y los loaders devuelven batches correctos. Gabor filters extraen features. Métricas funcionan con datos dummy.
 
 ### Semana 2 — Modelos
-- **Yeray (lun-jue):** `net/networks/mobilenetv2.py` con torchvision MobileNetV2 pretrained, cabeza custom de 26 clases. Implementar las 3 fases de progressive unfreezing en `main.py` (o como función separada en `utility/get_fresh_model.py`):
+- **Yeray (lun-jue):** `net/networks/mobilenetv2.py` con torchvision MobileNetV2 pretrained, cabeza custom de 24 clases. Implementar las 3 fases de progressive unfreezing en `main.py` (o como función separada en `utility/get_fresh_model.py`):
   - Fase 1: freeze backbone, train head, LR=1e-3, ~5 epochs
   - Fase 2: unfreeze layers ≥140, LR=1e-4, ~10 epochs
   - Fase 3: unfreeze all, LR=1e-5, ~10 epochs
   - Guardar checkpoint y métricas tras cada fase.
 - **Yeray (vie):** integrar y entrenar end-to-end. Generar `runs/mobilenetv2_*/scores/` con accuracy final.
-- **Corentin (lun-mié):** `phases/train.py` y `phases/infer.py` con el loop train/val genérico. `net/networks/cnn_scratch.py`.
-- **Corentin (jue-vie):** entrenar el CNN. Adam lr=1e-3, EarlyStopping (implementar manualmente con patience=5), `runs/cnn_scratch_*/scores/`.
-- **Toni (toda la semana):** lógica de Gabor+SVM. Lanzar desde `main.py --model gabor_svm`. Pipeline: extract Gabor features → PCA(200) → GridSearchCV(SVM RBF, C∈{0.1,1,10}). Evaluar y guardar `runs/gabor_svm_*/scores/`.
+- **Toni (lun-mié):** `phases/train.py` y `phases/infer.py` con el loop train/val genérico. `net/networks/cnn_scratch.py`. Avisar a Yeray en cuanto `phases/*` estén listos — desbloquean MobileNet.
+- **Toni (jue-vie):** entrenar el CNN. Adam lr=1e-3, EarlyStopping (implementar manualmente con patience=5), `runs/cnn_scratch_*/scores/`.
+- **Corentin (toda la semana):** lógica de Gabor+SVM. Lanzar desde `main.py --model gabor_svm`. Pipeline: extract Gabor features → PCA(200) → GridSearchCV(SVM RBF, C∈{0.1,1,10}). Evaluar y guardar `runs/gabor_svm_*/scores/`.
 
 **Hito semana 2:** los 3 modelos entrenados al menos una vez, con `scores/` final guardado en `runs/`.
 
 ### Semana 3 — Comparación y entrega
 - **Yeray (lun-mar):** `comparison.py` — leer todos los `runs/*/scores/`, tabla comparativa (accuracy, precision/recall macro, F1), gráfico de barras.
-- **Toni (lun-mié):** `visual/plot.py` para curvas train/val. Matrices de confusión de los 3 modelos como PNG en `figures/`.
-- **Corentin (lun-mié):** análisis de errores — qué letras se confunden más (ej. M/N, S/A), incluir en `comparison.py` o documento aparte.
-- **Todos (jue-vie):** slides de presentación. Distribución sugerida: intro + Gabor+SVM (Toni), CNN scratch + análisis errores (Corentin), MobileNetV2 + comparación (Yeray).
+- **Corentin (lun-mié):** `visual/plot.py` para curvas train/val. Matrices de confusión de los 3 modelos como PNG en `figures/`.
+- **Toni (lun-mié):** análisis de errores — qué letras se confunden más (ej. M/N, S/A), incluir en `comparison.py` o documento aparte.
+- **Todos (jue-vie):** slides de presentación. Distribución sugerida: intro + Gabor+SVM (Corentin), CNN scratch + análisis errores (Toni), MobileNetV2 + comparación (Yeray).
 
 **Hito semana 3:** slides terminadas, repo limpio, README explicando cómo reproducir resultados.
 
@@ -229,7 +229,7 @@ Y obtener: 3 carpetas en `runs/`, una tabla comparativa por consola, y los PNGs 
 
 **Criterios de éxito mínimos (MVP):**
 - MobileNetV2 ≥ 85% accuracy en test (subject-5). El paper de referencia llega a 91.8%.
-- CNN scratch ≥ 50% (cualquier valor por encima de baseline aleatorio 1/26 ≈ 3.8%, idealmente 50–70%).
+- CNN scratch ≥ 50% (cualquier valor por encima de baseline aleatorio 1/24 ≈ 4.2%, idealmente 50–70%).
 - Gabor+SVM funcional aunque sea con accuracy modesta (30–60%) — el punto es contrastar con DL.
 
 **Extendido (si sobra tiempo):**

@@ -1,6 +1,6 @@
 """Top-1 accuracy.
 
-OWNER: Corentin.
+OWNER: Toni.
 
     def accuracy(y_true, y_pred) -> float:
         return float((np.asarray(y_true) == np.asarray(y_pred)).mean())
@@ -8,4 +8,4 @@ OWNER: Corentin.
 
 
 def accuracy(y_true, y_pred):
-    raise NotImplementedError("Corentin: implementar accuracy.")
+    raise NotImplementedError("Toni: implementar accuracy.")

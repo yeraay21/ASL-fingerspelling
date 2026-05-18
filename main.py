@@ -85,7 +85,7 @@ def run_dummy(cfg, run_dir: Path) -> dict:
 
 def run_gabor_svm(cfg, run_dir: Path) -> dict:
     raise NotImplementedError(
-        "Gabor+SVM lo implementa Toni. Pipeline esperado:\n"
+        "Gabor+SVM lo implementa Corentin. Pipeline esperado:\n"
         "  1. cargar imágenes 64x64 grayscale con dataset.loaders\n"
         "  2. extraer features con dataset.preprocessing.filters.build_gabor_bank\n"
         "  3. PCA(200) -> GridSearchCV(SVC(kernel='rbf'), C=[0.1,1,10])\n"

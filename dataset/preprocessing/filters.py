@@ -1,6 +1,6 @@
 """Gabor filter bank for the classical baseline (Gabor + SVM).
 
-OWNER: Toni.
+OWNER: Corentin.
 
 Expected interface (consumed by main.run_gabor_svm and the SVM pipeline):
 
@@ -30,8 +30,8 @@ import numpy as np
 
 
 def build_gabor_bank(frequencies, orientations):
-    raise NotImplementedError("Toni: implementar el banco de filtros Gabor.")
+    raise NotImplementedError("Corentin: implementar el banco de filtros Gabor.")
 
 
 def extract_features(images_gray: np.ndarray, filters) -> np.ndarray:
-    raise NotImplementedError("Toni: implementar extracción de features Gabor.")
+    raise NotImplementedError("Corentin: implementar extracción de features Gabor.")

@@ -1,6 +1,6 @@
 """Plotting utilities.
 
-OWNER: Toni.
+OWNER: Corentin.
 
 Expected interface (consumed by comparison.py and the slides):
 
@@ -14,8 +14,8 @@ Expected interface (consumed by comparison.py and the slides):
 
 
 def plot_history(history, out_path: str) -> None:
-    raise NotImplementedError("Toni: implementar plot_history.")
+    raise NotImplementedError("Corentin: implementar plot_history.")
 
 
 def plot_confusion_matrix(cm, classes, out_path: str) -> None:
-    raise NotImplementedError("Toni: implementar plot_confusion_matrix.")
+    raise NotImplementedError("Corentin: implementar plot_confusion_matrix.")

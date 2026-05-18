@@ -1,6 +1,6 @@
 """One-epoch training loop.
 
-OWNER: Corentin.
+OWNER: Toni. CRITICAL PATH — Yeray's MobileNetV2 also depends on this function.
 
 Expected interface (consumed by main.run_cnn_scratch):
 
@@ -27,4 +27,4 @@ Pseudocode:
 
 
 def train_one_ep(model, loader, optimizer, loss_fn, device):
-    raise NotImplementedError("Corentin: implementar train_one_ep.")
+    raise NotImplementedError("Toni: implementar train_one_ep.")

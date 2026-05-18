@@ -1,6 +1,6 @@
 """Validation / test inference loop.
 
-OWNER: Corentin.
+OWNER: Toni. CRITICAL PATH — Yeray's MobileNetV2 also depends on this function.
 
 Expected interface (consumed by main.run_cnn_scratch):
 
@@ -18,4 +18,4 @@ Pseudocode:
 
 
 def infer_one_ep(model, loader, loss_fn, device, validation: bool = True):
-    raise NotImplementedError("Corentin: implementar infer_one_ep.")
+    raise NotImplementedError("Toni: implementar infer_one_ep.")

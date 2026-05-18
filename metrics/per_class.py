@@ -1,6 +1,6 @@
 """Per-class precision, recall and F1.
 
-OWNER: Corentin. Wrap sklearn.metrics.precision_recall_fscore_support
+OWNER: Toni. Wrap sklearn.metrics.precision_recall_fscore_support
 with labels=list(range(num_classes)) and average=None.
 
     def per_class_metrics(y_true, y_pred, num_classes: int) -> dict:
@@ -9,4 +9,4 @@ with labels=list(range(num_classes)) and average=None.
 
 
 def per_class_metrics(y_true, y_pred, num_classes: int):
-    raise NotImplementedError("Corentin: implementar per_class_metrics.")
+    raise NotImplementedError("Toni: implementar per_class_metrics.")

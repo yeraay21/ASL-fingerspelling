@@ -1,6 +1,6 @@
 """CNN trained from scratch on 64x64 RGB ASL images.
 
-OWNER: Corentin.
+OWNER: Toni.
 
 NOTE: this Kaggle dataset has 24 classes (J and Z excluded — they require
 motion). num_classes is passed in by the caller, do not hardcode it.
@@ -27,7 +27,7 @@ import torch.nn as nn
 class CNNScratch(nn.Module):
     def __init__(self, num_classes: int) -> None:
         super().__init__()
-        raise NotImplementedError("Corentin: implementar CNNScratch.")
+        raise NotImplementedError("Toni: implementar CNNScratch.")
 
     def forward(self, x):
-        raise NotImplementedError("Corentin: implementar CNNScratch.forward.")
+        raise NotImplementedError("Toni: implementar CNNScratch.forward.")
