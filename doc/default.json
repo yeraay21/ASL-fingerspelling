@@ -1,0 +1,29 @@
+{
+  "data_dir": "data/raw/fingerspelling-asl",
+  "subjects_train": ["subject-1", "subject-2", "subject-3", "subject-4"],
+  "subjects_test": ["subject-5"],
+  "include_extra": true,
+  "val_split": 0.10,
+  "seed": 42,
+  "batch_size": 64,
+  "num_workers": 2,
+  "epochs": 25,
+  "lr": 1e-3,
+  "weight_decay": 1e-4,
+  "early_stop_patience": 5,
+  "runs_dir": "runs",
+  "img_size_small": 64,
+  "img_size_mobile": 224,
+  "mobilenet_phases": [
+    {"name": "head",    "unfreeze_from": null, "lr": 1e-3, "epochs": 5},
+    {"name": "partial", "unfreeze_from": 140,  "lr": 1e-4, "epochs": 10},
+    {"name": "full",    "unfreeze_from": 0,    "lr": 1e-5, "epochs": 10}
+  ],
+  "gabor": {
+    "frequencies": [0.1, 0.2, 0.3, 0.4, 0.5],
+    "orientations": 8,
+    "pca_components": 200,
+    "svm_C_grid": [0.1, 1, 10],
+    "svm_kernel": "rbf"
+  }
+}
