@@ -1,4 +1,3 @@
-"""ASL Fingerspelling dataset (carga imágenes de forma perezosa)."""
 
 import os
 

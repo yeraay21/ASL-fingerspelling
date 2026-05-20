@@ -2,4 +2,4 @@
 
 
 def infer_one_ep(model, loader, loss_fn, device, validation=True):
-    raise NotImplementedError("Toni: implementar infer_one_ep.")
+    
