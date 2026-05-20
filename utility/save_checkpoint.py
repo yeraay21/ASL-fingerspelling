@@ -1,14 +1,11 @@
-"""Persist model + optimizer state."""
-
-from __future__ import annotations
+"""Guarda el state_dict del modelo (+ optimizer + extras)."""
 
 from pathlib import Path
 
 import torch
 
 
-def save_checkpoint(path: str | Path, model, optimizer=None, **extra) -> None:
-    """Save model.state_dict() (+ optimizer + arbitrary metadata) to path."""
+def save_checkpoint(path, model, optimizer=None, **extra):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"model_state": model.state_dict(), **extra}

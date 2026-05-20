@@ -1,9 +1,4 @@
-"""Argument parsing + config loading for main.py.
-
-Precedence: CLI flag > JSON config > default.json.
-"""
-
-from __future__ import annotations
+"""Argparse + JSON config. Precedence: CLI > JSON > default.json."""
 
 import argparse
 import json
@@ -11,29 +6,20 @@ from pathlib import Path
 from types import SimpleNamespace
 
 DEFAULT_CONFIG = Path(__file__).parent / "doc" / "default.json"
-
-MODEL_CHOICES = ("gabor_svm", "cnn_scratch", "mobilenetv2", "dummy")
-
-
-def _load_json(path: Path) -> dict:
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+MODEL_CHOICES = ("gabor_svm", "cnn_scratch", "mobilenetv2")
 
 
-def _to_namespace(d: dict) -> SimpleNamespace:
-    """Recursive dict -> SimpleNamespace so we can use cfg.field.subfield."""
+def to_namespace(d):
     out = SimpleNamespace()
     for k, v in d.items():
-        setattr(out, k, _to_namespace(v) if isinstance(v, dict) else v)
+        setattr(out, k, to_namespace(v) if isinstance(v, dict) else v)
     return out
 
 
-def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="ASL Fingerspelling — unified entry point.")
-    p.add_argument("--model", choices=MODEL_CHOICES, required=False,
-                   help="Which model to train.")
-    p.add_argument("--config", type=str, default=str(DEFAULT_CONFIG),
-                   help="Path to JSON config file.")
+def build_parser():
+    p = argparse.ArgumentParser(description="ASL Fingerspelling")
+    p.add_argument("--model", choices=MODEL_CHOICES, required=False)
+    p.add_argument("--config", type=str, default=str(DEFAULT_CONFIG))
     p.add_argument("--epochs", type=int, default=None)
     p.add_argument("--batch_size", type=int, default=None)
     p.add_argument("--lr", type=float, default=None)
@@ -42,28 +28,28 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--runs_dir", type=str, default=None)
     p.add_argument("--device", choices=("cuda", "cpu", "auto"), default="auto")
     p.add_argument("--num_workers", type=int, default=None)
-    p.add_argument("--debug", action="store_true",
-                   help="Run with a tiny subset to check the pipeline end-to-end.")
+    p.add_argument("--debug", action="store_true")
     return p
 
 
-def parse_args(argv: list[str] | None = None) -> SimpleNamespace:
+def parse_args(argv=None):
     args = build_parser().parse_args(argv)
 
     config_path = Path(args.config)
     if not config_path.exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
-    cfg_dict = _load_json(config_path)
+        raise FileNotFoundError(f"Config no encontrado: {config_path}")
 
-    for cli_key in ("epochs", "batch_size", "lr", "seed",
-                    "data_dir", "runs_dir", "num_workers"):
-        cli_val = getattr(args, cli_key)
-        if cli_val is not None:
-            cfg_dict[cli_key] = cli_val
+    with open(config_path, "r", encoding="utf-8") as f:
+        cfg_dict = json.load(f)
+
+    for key in ("epochs", "batch_size", "lr", "seed", "data_dir", "runs_dir", "num_workers"):
+        val = getattr(args, key)
+        if val is not None:
+            cfg_dict[key] = val
 
     cfg_dict["model"] = args.model
     cfg_dict["device"] = args.device
     cfg_dict["debug"] = args.debug
     cfg_dict["config_path"] = str(config_path)
 
-    return _to_namespace(cfg_dict)
+    return to_namespace(cfg_dict)

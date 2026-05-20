@@ -1,11 +1,5 @@
-"""Confusion matrix.
-
-OWNER: Toni.
-
-    def confusion_matrix(y_true, y_pred, num_classes: int) -> np.ndarray:
-        # shape (num_classes, num_classes), rows = true, cols = predicted
-"""
+"""Matriz de confusión (Toni). Filas = true, columnas = predicted."""
 
 
-def confusion_matrix(y_true, y_pred, num_classes: int):
+def confusion_matrix(y_true, y_pred, num_classes):
     raise NotImplementedError("Toni: implementar confusion_matrix.")
