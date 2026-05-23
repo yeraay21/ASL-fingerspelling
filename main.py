@@ -38,14 +38,78 @@ def save_json(path, data):
         json.dump(data, f, indent=2, default=lambda o: vars(o))
 
 
-def run_gabor_svm(cfg, run_dir):
-    raise NotImplementedError(
-        "Gabor+SVM lo implementa Corentin. Pipeline esperado:\n"
-        "  1. cargar imágenes 64x64 grayscale con dataset.loaders\n"
-        "  2. extraer features con dataset.preprocessing.filters.build_gabor_bank\n"
-        "  3. PCA(200) -> GridSearchCV(SVC(kernel='rbf'), C=[0.1,1,10])\n"
-        "  4. guardar accuracy/precision/recall/f1 en run_dir/scores/results.json"
+
+def run_gabor_svm(cfg, run_dir: Path) -> dict:
+    import numpy as np
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.decomposition import PCA
+    from sklearn.svm import SVC
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.metrics import precision_recall_fscore_support, accuracy_score
+
+    from dataset.dataset import ASLDataset, discover_classes
+    from dataset.preprocessing.image_processing import (
+        read_image_bgr, to_grayscale, resize, to_float01,
     )
+
+    # load functions implemented in filters.py
+    from dataset.preprocessing.filters import build_gabor_bank, extract_features
+
+    classes = discover_classes(cfg.data_dir, cfg.subjects_train[0])
+
+    def load_gray(subjects, include_extra):
+        ds = ASLDataset(cfg.data_dir, subjects, classes,
+                        transform=lambda img: img,
+                        include_extra=include_extra)
+        X = np.zeros((len(ds), cfg.img_size_small, cfg.img_size_small), dtype=np.float32)
+        y = np.zeros(len(ds), dtype=np.int64)
+
+        # go through the dataset to prepare our data
+        for i, (img_rgb, label) in enumerate(ds):
+            # grayscaling our images + resizing
+            gray = to_grayscale(img_rgb)
+            gray = resize(gray, cfg.img_size_small)
+
+            # fill the table X and y
+            X[i] = to_float01(gray)
+            y[i] = label
+        return X, y
+
+    # apply load_gray on test set and training set
+    X_tr, y_tr = load_gray(cfg.subjects_train, cfg.include_extra)
+    X_te, y_te = load_gray(cfg.subjects_test, include_extra=False)
+
+    # use the functions from filters.py to get a vector with 80 columns (mean+std for 40 gabor filters)
+    bank = build_gabor_bank(cfg.gabor.frequencies, cfg.gabor.orientations)
+    F_tr = extract_features(X_tr, bank)
+    F_te = extract_features(X_te, bank)
+
+    # standardisation of the dataset 
+    scaler = StandardScaler().fit(F_tr)
+    F_tr_s, F_te_s = scaler.transform(F_tr), scaler.transform(F_te)
+
+    # apply PCA to reduce colinearity, cleaner data
+    pca = PCA(n_components=cfg.gabor.pca_components, random_state=cfg.seed).fit(F_tr_s)
+    Z_tr, Z_te = pca.transform(F_tr_s), pca.transform(F_te_s)
+
+    # training model, GridSearch useful to automatically find the best C value
+    grid = GridSearchCV(
+        SVC(kernel=cfg.gabor.svm_kernel),
+        param_grid={"C": cfg.gabor.svm_C_grid},
+        cv=3, n_jobs=-1,
+    ).fit(Z_tr, y_tr)
+
+    # evaluation of the performance
+    y_pred = grid.best_estimator_.predict(Z_te)
+    acc = float(accuracy_score(y_te, y_pred))
+    p, r, f, _ = precision_recall_fscore_support(y_te, y_pred, average="macro", zero_division=0)
+
+    return {"model": "gabor_svm",
+            "num_classes": len(classes), "classes": classes,
+            "best_C": grid.best_params_["C"], "cv_best_score": float(grid.best_score_),
+            "test": {"acc": acc, "precision_macro": float(p),
+                     "recall_macro": float(r), "f1_macro": float(f),
+                     "y_true": y_te.tolist(), "y_pred": y_pred.tolist()}}
 
 
 def run_cnn_scratch(cfg, run_dir, device):
