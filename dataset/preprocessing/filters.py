@@ -23,22 +23,13 @@ def extract_features(images_gray, filters):
             out[i, 2*j + 1] = resp.std()
     return out
 
-#uncomment line below to test
-# if __name__ == "__main__":
-    
-    # simulate our images with values in [0,1] (dummy batch method)
+if __name__ == "__main__":
+    # Bloque de test: solo se ejecuta con `python filters.py`, no al importar
     dummy_images = np.random.rand(5, 64, 64)
-
-    # define filters params
     freqs = [0.05, 0.1, 0.15, 0.2, 0.25]
     orientations = 8
-
-    # we execute both functions
     bank = build_gabor_bank(freqs, orientations)
-    
     features = extract_features(dummy_images, bank)
-
-
     print("test results")
     print(f"is shape (5,80)? Shape  : {features.shape}")
     print(f"NaN or not : {np.isnan(features).any()}")
