@@ -15,9 +15,9 @@
   "img_size_small": 64,
   "img_size_mobile": 224,
   "mobilenet_phases": [
-    {"name": "head",    "unfreeze_from": null, "lr": 1e-3, "epochs": 5},
-    {"name": "partial", "unfreeze_from": 140,  "lr": 1e-4, "epochs": 10},
-    {"name": "full",    "unfreeze_from": 0,    "lr": 1e-5, "epochs": 10}
+    {"name": "head",    "unfreeze_from": null, "lr": 1e-3, "epochs": 3},
+    {"name": "partial", "unfreeze_from": 14,   "lr": 1e-4, "epochs": 5},
+    {"name": "full",    "unfreeze_from": 0,    "lr": 1e-5, "epochs": 5}
   ],
   "gabor": {
     "frequencies": [0.1, 0.2, 0.3, 0.4, 0.5],
