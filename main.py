@@ -96,7 +96,7 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
     grid = GridSearchCV(
         SVC(kernel=cfg.gabor.svm_kernel),
         param_grid={"C": cfg.gabor.svm_C_grid},
-        cv=3, n_jobs=-1,
+        cv=3, n_jobs=2,
     ).fit(Z_tr, y_tr)
 
     # evaluation of the performance
