@@ -94,9 +94,14 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
 
     # training model, GridSearch useful to automatically find the best C value
     grid = GridSearchCV(
-        SVC(kernel=cfg.gabor.svm_kernel),
+        SVC(
+            kernel=cfg.gabor.svm_kernel, 
+            cache_size=2000,       
+            max_iter=10000         
+        ),
         param_grid={"C": cfg.gabor.svm_C_grid},
-        cv=3, n_jobs=-1,
+        cv=3, 
+        n_jobs=-1,
     ).fit(Z_tr, y_tr)
 
     # evaluation of the performance
