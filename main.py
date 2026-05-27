@@ -46,6 +46,7 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
     from sklearn.svm import SVC
     from sklearn.model_selection import GridSearchCV
     from sklearn.metrics import precision_recall_fscore_support, accuracy_score
+    from tqdm import tqdm
 
     from dataset.dataset import ASLDataset, discover_classes
     from dataset.preprocessing.image_processing import (
@@ -65,7 +66,7 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
         y = np.zeros(len(ds), dtype=np.int64)
 
         # go through the dataset to prepare our data
-        for i, (img_rgb, label) in enumerate(ds):
+        for i, (img_rgb, label) in enumerate(tqdm(ds, desc="loading grayscale images")):
             # grayscaling our images + resizing
             gray = to_grayscale(img_rgb)
             gray = resize(gray, cfg.img_size_small)
@@ -80,19 +81,36 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
     X_te, y_te = load_gray(cfg.subjects_test, include_extra=False)
 
     # use the functions from filters.py to get a vector with 80 columns (mean+std for 40 gabor filters)
+    print("(1/4)initializing gabor bank")
     bank = build_gabor_bank(cfg.gabor.frequencies, cfg.gabor.orientations)
+
+    print(f"(1/4)Extraction on training set ({len(X_tr)} images)...")
+    t0 = time.time()
     F_tr = extract_features(X_tr, bank)
+    print(f" -> ended in {time.time() - t0:.2f} seconds. matrix size: {F_tr.shape}")
+    
+    print(f"(1/4) Extraction on the test set ({len(X_te)} images)...")
+    t0 = time.time()
     F_te = extract_features(X_te, bank)
+    print(f" -> ended in {time.time() - t0:.2f} seconds. matrix size : {F_te.shape}")
 
     # standardisation of the dataset 
+    print("\n(2/4) computing standardisation (StandardScaler)")
+    t0 = time.time()
     scaler = StandardScaler().fit(F_tr)
     F_tr_s, F_te_s = scaler.transform(F_tr), scaler.transform(F_te)
+    print(f" -> data standardized in {time.time() - t0:.2f} seconds.")
 
     # apply PCA to reduce colinearity, cleaner data
+    print(f"\n(3/4) PCA ({cfg.gabor.pca_components} composants)")
+    t0 = time.time()
     pca = PCA(n_components=cfg.gabor.pca_components, random_state=cfg.seed).fit(F_tr_s)
     Z_tr, Z_te = pca.transform(F_tr_s), pca.transform(F_te_s)
+    print(f" -> PCA done in {time.time() - t0:.2f} seconds.")
+    print(f" ->final dimensions ready for SVM : Train={Z_tr.shape}, Test={Z_te.shape}")
 
     # training model, GridSearch useful to automatically find the best C value
+    print(f"\n(4/4) GridSearch")
     grid = GridSearchCV(
         SVC(
             kernel=cfg.gabor.svm_kernel, 
@@ -102,6 +120,7 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
         param_grid={"C": cfg.gabor.svm_C_grid},
         cv=3, 
         n_jobs=-1,
+        verbose=3,
     ).fit(Z_tr, y_tr)
 
     # evaluation of the performance
@@ -168,10 +187,75 @@ def run_cnn_scratch(cfg, run_dir, device):
 
 
 def run_mobilenetv2(cfg, run_dir, device):
-    raise NotImplementedError(
-        "MobileNetV2 con progressive unfreezing lo implementa Yeray (semana 2).\n"
-        "Esqueleto: tres fases (head / partial / full) según cfg.mobilenet_phases."
+    import torch
+    from dataset.loaders import get_loaders
+    from utility.get_fresh_model import get_fresh_model
+    from utility.save_checkpoint import save_checkpoint
+    from phases.train import train_one_ep
+    from phases.infer import infer_one_ep
+
+    # Loaders con imágenes 224x224 RGB y normalización ImageNet (requerimiento de MobileNetV2)
+    train_loader, val_loader, test_loader, classes = get_loaders(
+        data_dir=cfg.data_dir,
+        subjects_train=cfg.subjects_train,
+        subjects_test=cfg.subjects_test,
+        include_extra=cfg.include_extra,
+        img_size=cfg.img_size_mobile,
+        batch_size=cfg.batch_size,
+        val_split=cfg.val_split,
+        seed=cfg.seed,
+        num_workers=cfg.num_workers,
+        mobilenet_norm=True,  # activa mean/std de ImageNet en lugar de [0,1]
     )
+
+    # Creamos el modelo con la cabeza adaptada a nuestras 24 clases
+    model, loss_fn, _ = get_fresh_model("mobilenetv2", cfg, device, num_classes=len(classes))
+
+    history = []
+
+    # Iteramos sobre las 3 fases definidas en default.json: head → partial → full
+    for phase in cfg.mobilenet_phases:
+
+        # Congela o descongela capas del backbone según la fase
+        model.set_phase(phase.unfreeze_from)
+
+        # Solo pasamos al optimizador los parámetros que tienen requires_grad=True
+        # (los congelados no se actualizan y así ahorramos tiempo y memoria)
+        optimizer = torch.optim.Adam(
+            [p for p in model.parameters() if p.requires_grad],
+            lr=phase.lr,
+        )
+
+        for epoch in range(1, phase.epochs + 1):
+            tr = train_one_ep(model, train_loader, optimizer, loss_fn, device)
+            va = infer_one_ep(model, val_loader, loss_fn, device, validation=True)
+
+            # Guardamos la métrica de cada época en el historial para las curvas de plot
+            history.append({
+                "phase": phase.name,
+                "epoch": epoch,
+                **{f"train_{k}": v for k, v in tr.items() if k not in ("y_true", "y_pred")},
+                **{f"val_{k}":   v for k, v in va.items() if k not in ("y_true", "y_pred")},
+            })
+            print(f"[{phase.name} ep {epoch:02d}] train acc={tr['acc']:.3f} | val acc={va['acc']:.3f}")
+
+        # Guardamos el checkpoint al final de cada fase (por si Colab se cae)
+        save_checkpoint(
+            run_dir / "models" / f"{phase.name}.pt",
+            model, optimizer,
+            phase=phase.name, val_acc=va["acc"],
+        )
+
+    # Evaluación final en el test set (subject-5) — solo se hace una vez al terminar
+    test = infer_one_ep(model, test_loader, loss_fn, device, validation=False)
+
+    return {
+        "model": "mobilenetv2",
+        "num_classes": len(classes),
+        "classes": classes,
+        "test": test,
+        "history": history,
+    }
 
 
 def main(argv=None):
