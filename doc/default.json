@@ -22,7 +22,7 @@
   "gabor": {
     "frequencies": [0.1, 0.2, 0.3, 0.4, 0.5],
     "orientations": 8,
-    "pca_components": 200,
+    "pca_components": 60,
     "svm_C_grid": [0.1, 1, 10],
     "svm_kernel": "rbf"
   }
