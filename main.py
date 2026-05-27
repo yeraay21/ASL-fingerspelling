@@ -81,19 +81,36 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
     X_te, y_te = load_gray(cfg.subjects_test, include_extra=False)
 
     # use the functions from filters.py to get a vector with 80 columns (mean+std for 40 gabor filters)
+    print("(1/4)initializing gabor bank")
     bank = build_gabor_bank(cfg.gabor.frequencies, cfg.gabor.orientations)
+
+    print(f"(1/4)Extraction on training set ({len(X_tr)} images)...")
+    t0 = time.time()
     F_tr = extract_features(X_tr, bank)
+    print(f" -> ended in {time.time() - t0:.2f} seconds. matrix size: {F_tr.shape}")
+    
+    print(f"(1/4) Extraction on the test set ({len(X_te)} images)...")
+    t0 = time.time()
     F_te = extract_features(X_te, bank)
+    print(f" -> ended in {time.time() - t0:.2f} seconds. matrix size : {F_te.shape}")
 
     # standardisation of the dataset 
+    print("\n(2/4) computing standardisation (StandardScaler)")
+    t0 = time.time()
     scaler = StandardScaler().fit(F_tr)
     F_tr_s, F_te_s = scaler.transform(F_tr), scaler.transform(F_te)
+    print(f" -> data standardized in {time.time() - t0:.2f} seconds.")
 
     # apply PCA to reduce colinearity, cleaner data
+    print(f"\n(3/4) PCA ({cfg.gabor.pca_components} composants)")
+    t0 = time.time()
     pca = PCA(n_components=cfg.gabor.pca_components, random_state=cfg.seed).fit(F_tr_s)
     Z_tr, Z_te = pca.transform(F_tr_s), pca.transform(F_te_s)
+    print(f" -> PCA done in {time.time() - t0:.2f} seconds.")
+    print(f" ->final dimensions ready for SVM : Train={Z_tr.shape}, Test={Z_te.shape}")
 
     # training model, GridSearch useful to automatically find the best C value
+    print(f"\n(4/4) GridSearch")
     grid = GridSearchCV(
         SVC(
             kernel=cfg.gabor.svm_kernel, 
