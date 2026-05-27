@@ -84,16 +84,27 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
     print("(1/4)initializing gabor bank")
     bank = build_gabor_bank(cfg.gabor.frequencies, cfg.gabor.orientations)
 
+    import os
     print(f"(1/4)Extraction on training set ({len(X_tr)} images)...")
-    t0 = time.time()
-    F_tr = extract_features(X_tr, bank)
-    print(f" -> ended in {time.time() - t0:.2f} seconds. matrix size: {F_tr.shape}")
-    
-    print(f"(1/4) Extraction on the test set ({len(X_te)} images)...")
-    t0 = time.time()
-    F_te = extract_features(X_te, bank)
-    print(f" -> ended in {time.time() - t0:.2f} seconds. matrix size : {F_te.shape}")
+    if os.path.exists("F_tr_saved.npy") and os.path.exists("F_te_saved.npy"):
+        print("saved files found Instant")
+        F_tr = np.load("F_tr_saved.npy")
+        F_te = np.load("F_te_saved.npy")
+        print(f" -> matrix size: Train={F_tr.shape}, Test={F_te.shape}")
+    else:
+        t0 = time.time()
+        F_tr = extract_features(X_tr, bank)
+        print(f" -> ended in {time.time() - t0:.2f} seconds. matrix size: {F_tr.shape}")
 
+        print(f"(1/4) Extraction on the test set ({len(X_te)} images)...")
+        t0 = time.time()
+        F_te = extract_features(X_te, bank)
+        print(f" -> ended in {time.time() - t0:.2f} seconds. matrix size : {F_te.shape}")
+    
+        np.save("F_tr_saved.npy", F_tr)
+        np.save("F_te_saved.npy", F_te)
+        print(" -> extraction data saved")
+        
     # standardisation of the dataset 
     print("\n(2/4) computing standardisation (StandardScaler)")
     t0 = time.time()
