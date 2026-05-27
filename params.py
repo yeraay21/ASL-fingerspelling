@@ -12,7 +12,13 @@ MODEL_CHOICES = ("gabor_svm", "cnn_scratch", "mobilenetv2")
 def to_namespace(d):
     out = SimpleNamespace()
     for k, v in d.items():
-        setattr(out, k, to_namespace(v) if isinstance(v, dict) else v)
+        if isinstance(v, dict):
+            setattr(out, k, to_namespace(v))
+        elif isinstance(v, list):
+            # convierte cada dict dentro de una lista (ej: mobilenet_phases)
+            setattr(out, k, [to_namespace(i) if isinstance(i, dict) else i for i in v])
+        else:
+            setattr(out, k, v)
     return out
 
 
