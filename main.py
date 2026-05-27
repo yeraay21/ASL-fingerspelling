@@ -46,6 +46,7 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
     from sklearn.svm import SVC
     from sklearn.model_selection import GridSearchCV
     from sklearn.metrics import precision_recall_fscore_support, accuracy_score
+    from tqdm import tqdm
 
     from dataset.dataset import ASLDataset, discover_classes
     from dataset.preprocessing.image_processing import (
@@ -65,7 +66,7 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
         y = np.zeros(len(ds), dtype=np.int64)
 
         # go through the dataset to prepare our data
-        for i, (img_rgb, label) in enumerate(ds):
+        for i, (img_rgb, label) in enumerate(tqdm(ds, desc="loading grayscale images")):
             # grayscaling our images + resizing
             gray = to_grayscale(img_rgb)
             gray = resize(gray, cfg.img_size_small)
