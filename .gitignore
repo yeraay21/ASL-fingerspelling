@@ -2,7 +2,9 @@
 data/raw/
 data/processed/
 runs/
+!runs/*/scores/results.json
 figures/
+!figures/*.png
 *.npy
 !doc/*.npy
 
