@@ -9,13 +9,16 @@ def build_train_transforms(img_size, mobilenet_norm):
     ops = [
         transforms.ToPILImage(),
         transforms.Resize((img_size, img_size)),
-        transforms.RandomRotation(15),
-        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
-        transforms.ColorJitter(brightness=0.2),
+        transforms.RandomRotation(20),
+        transforms.RandomAffine(degrees=0, translate=(0.15, 0.15), scale=(0.8, 1.2)),
+        transforms.RandomPerspective(distortion_scale=0.2, p=0.3),
+        transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
+        transforms.GaussianBlur(kernel_size=3, sigma=(0.1, 1.0)),
         transforms.ToTensor(),
+        transforms.RandomErasing(p=0.3, scale=(0.02, 0.15)),
     ]
     if mobilenet_norm:
-        ops.append(transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD))
+        ops.insert(-1, transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD))
     return transforms.Compose(ops)
 
 

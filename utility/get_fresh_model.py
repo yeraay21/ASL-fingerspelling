@@ -8,7 +8,7 @@ def get_fresh_model(model_name, cfg, device, num_classes):
     if model_name == "cnn_scratch":
         from net.networks.cnn_scratch import CNNScratch
         model = CNNScratch(num_classes=num_classes).to(device)
-        loss_fn = nn.CrossEntropyLoss()
+        loss_fn = nn.CrossEntropyLoss(label_smoothing=0.1)
         optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
         return model, loss_fn, optimizer
 
