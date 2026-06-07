@@ -136,15 +136,30 @@ def run_gabor_svm(cfg, run_dir: Path) -> dict:
 
     # evaluation of the performance
     y_pred = grid.best_estimator_.predict(Z_te)
-    acc = float(accuracy_score(y_te, y_pred))
-    p, r, f, _ = precision_recall_fscore_support(y_te, y_pred, average="macro", zero_division=0)
 
-    return {"model": "gabor_svm",
-            "num_classes": len(classes), "classes": classes,
-            "best_C": grid.best_params_["C"], "cv_best_score": float(grid.best_score_),
-            "test": {"acc": acc, "precision_macro": float(p),
-                     "recall_macro": float(r), "f1_macro": float(f),
-                     "y_true": y_te.tolist(), "y_pred": y_pred.tolist()}}
+    y_score = grid.best_estimator_.decision_function(Z_te)
+
+    acc = float(accuracy_score(y_te, y_pred))
+    p, r, f, _ = precision_recall_fscore_support(
+        y_te, y_pred, average="macro", zero_division=0
+    )
+
+    return {
+        "model": "gabor_svm",
+        "num_classes": len(classes),
+        "classes": classes,
+        "best_C": grid.best_params_["C"],
+        "cv_best_score": float(grid.best_score_),
+        "test": {
+            "acc": acc,
+            "precision_macro": float(p),
+            "recall_macro": float(r),
+            "f1_macro": float(f),
+            "y_true": y_te.tolist(),
+            "y_pred": y_pred.tolist(),
+            "y_score": y_score.tolist()
+        }
+    }
 
 
 def run_cnn_scratch(cfg, run_dir, device):
